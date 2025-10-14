@@ -95,8 +95,8 @@
             const WDS = wdsNames.indexOf(wdsName);
             const nodeSize = [50, 5][WDS];
             const edgeWidth = [60, 6][WDS];
-            const numSegments = [60, 3][WDS];
-            const timeScale = [0.3, 0.6][WDS];
+            const numSegments = [60, 5][WDS];
+            const timeScale = [0.3, 0.5][WDS];
             const Tau = 5; // [5, 5][WDS];
             const histSize = 30;
 
@@ -120,7 +120,6 @@
                 histSize
             };
         }
-
         await switchWDS(wdsName);
         
         const {handle, slider} = drawInjectionControl(app, t => {
@@ -134,9 +133,20 @@
             switchWDS('l_town_no_tanks');
         });
         
-
-
         let chlorineInjection = new Array(currentGraph.histSize + currentGraph.Tau).fill(0);
+        const nodeColors = new Array(currentGraph.nodeGraphics.length).fill(null);
+        const finalNodeColors = new Array(currentGraph.nodeGraphics.length);
+
+        function updateNodeColor(nodeIdx, colorHex) {
+            const g = currentGraph.nodeGraphics[nodeIdx];
+            if (nodeColors[nodeIdx] === colorHex) return; // skip if color didn't change
+            nodeColors[nodeIdx] = colorHex;
+
+            g.clear();
+            g.beginFill(colorHex);
+            g.drawCircle(0, 0, currentGraph.nodeSize); // drawCircle is faster than circle()
+            g.endFill();
+        }
 
         app.ticker.add((delta) => {
             if (!currentGraph || !currentGraph.edgeMeshes || !currentGraph.nodeGraphics) return;
@@ -169,36 +179,41 @@
             
             chlorineInjection.shift();
             chlorineInjection.push(injLevel);
-            
+
             // animate
-            for (const edgeIdx in currentGraph.edgeMeshes) {
+
+            for (let edgeIdx = 0; edgeIdx < currentGraph.edgeMeshes.length; edgeIdx++) {
                 const edgemesh = currentGraph.edgeMeshes[edgeIdx];
                 const colorBuffer = edgemesh.geometry.getBuffer('aColor');
                 // color is 1080 long if 60 segments: 
                 // 60 [segs] * 2 [triangles] * 3 [points] * 3 [RGB]
-                
                 const colors = colorBuffer.data;
-                for (let i = 0; i < colors.length; i += 3) {
-                    const segIdx = Math.floor(i/(2*3*3));
+
+                // Since each segment consists of 6 vertices (3 for each triangle), 
+                // we will precompute the colors for each one
+                for (let segIdx = 0; segIdx < currentGraph["numSegments"]; segIdx++) {
                     const c = getSegmentColor(lastEdgeData, edgeIdx, segIdx, timeIdx).gl();
-                    colors[i]   = c[0];
-                    colors[i+1] = c[1];
-                    colors[i+2] = c[2];
+                    const offset = segIdx*6*3;
+                    // We have 18 color values per segment (6 vertices, 3 colors RGB)
+                    for (let i = 0; i < 6; i++) {
+                        const color_offset = offset + i*3;
+                        colors[color_offset]   = c[0];
+                        colors[color_offset+1] = c[1];
+                        colors[color_offset+2] = c[2];
+                    }
                 }
                 colorBuffer.update();
                 const s = currentGraph.graph.edges[edgeIdx].s;
                 const t = currentGraph.graph.edges[edgeIdx].t;
-                currentGraph.nodeGraphics[s].clear();                 // clear previous drawing
-                currentGraph.nodeGraphics[s].beginFill(getSegmentColor(
-                    lastEdgeData, edgeIdx, 0, timeIdx).hex());     // new color
-                currentGraph.nodeGraphics[s].circle(0, 0, currentGraph.nodeSize);
-                currentGraph.nodeGraphics[s].endFill();
+                // store the latest color for each node
+                finalNodeColors[s] = getSegmentColor(lastEdgeData, edgeIdx, 0, timeIdx).hex();
+                finalNodeColors[t] = getSegmentColor(lastEdgeData, edgeIdx, currentGraph.numSegments-1, timeIdx).hex();
+            }
 
-                currentGraph.nodeGraphics[t].clear();                 // clear previous drawing
-                currentGraph.nodeGraphics[t].beginFill(getSegmentColor(
-                    lastEdgeData, edgeIdx, currentGraph.numSegments-1, timeIdx).hex());     // new color
-                currentGraph.nodeGraphics[t].circle(0, 0, currentGraph.nodeSize);
-                currentGraph.nodeGraphics[t].endFill();
+            for (let nodeIdx = 0; nodeIdx < finalNodeColors.length; nodeIdx++) {
+                if (finalNodeColors[nodeIdx] != null) {
+                    updateNodeColor(nodeIdx, finalNodeColors[nodeIdx]);
+                }
             }
         });
 
