@@ -4,12 +4,30 @@ import chromaJs from 'https://cdn.jsdelivr.net/npm/chroma-js@3.1.2/+esm'
 let session;
 let x;
 const scale = chromaJs.scale('viridis');//.scale('viridis').domain([0, 1]);
-ort.env.wasm.numThreads = 0;
-// ort.env.wasm.proxy = true;
+ort.env.wasm.simd = true;
+ort.env.wasm.numThreads = 1;
+ort.env.wasm.proxy = false;
 
 // --- 4. Load ONNX Model ---
 export async function loadModel(modelFile) {
-    session = await ort.InferenceSession.create(modelFile); // your model path
+    session = await ort.InferenceSession.create(modelFile, {
+        executionProviders: ['wasm'],  // or 'webgpu' if supported
+        graphOptimizationLevel: 'all', // enables full graph optimizations
+    }); // your model path
+}
+
+function cloneInputTensors(inputDict) {
+  const newDict = {};
+  for (const key in inputDict) {
+    if (Object.hasOwnProperty.call(inputDict, key)) {
+      const tensor = inputDict[key];
+
+      // Create a fresh ArrayBuffer copy
+      const newData = tensor.data.slice();  // slice() creates a new ArrayBuffer
+      newDict[key] = new ort.Tensor(tensor.type, newData, tensor.dims);
+    }
+  }
+  return newDict;
 }
 
 // --- 5. Run ONNX Model ---
@@ -37,6 +55,7 @@ export async function runModel(model_inputs, edgeData, T, lastOut, Tau, chlorine
     //     'float32', Float32Array.from(chlorineInjection), [1, chlorineInjection.length, 1]
     // );
 
+
     if (lastOut !== undefined) {
         const lo = await lastOut;
         model_inputs["x"] = lo.rawOut;
@@ -47,7 +66,9 @@ export async function runModel(model_inputs, edgeData, T, lastOut, Tau, chlorine
         //await loadModel();
         console.log('Call loadModel before runModel!')
     }
-    
+    if (ort.env.wasm.proxy) {
+        model_inputs = cloneInputTensors(model_inputs)
+    }
     const output = await session.run(model_inputs);//{ input: input });
     edgeData.push(output.xT);
     return { edgeData, rawOut : output.rawOut};
