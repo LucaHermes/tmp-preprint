@@ -172,12 +172,16 @@ export function drawMetricGraph(graphContainer, graph, width, height, numSegment
 
 const sliderX = 60;
 
+function getSliderWidth(app) {
+  return Math.min(500, app.screen.width * 0.4);
+}
+
 export function drawInjectionControl(app, callback) {
     // Make sure stage covers the whole scene
     app.stage.hitArea = app.screen;
 
     // Make the slider
-    const sliderWidth = Math.min(500, app.screen.width * 0.6);
+    const sliderWidth = getSliderWidth(app);
     const slider = new PIXI.Graphics().rect(0, 0, sliderWidth, 4).fill({ color: 0x272d37 });
     slider.eventMode = 'static';
     slider.x = sliderX;
@@ -261,8 +265,9 @@ export async function drawWDSSelectionControl(app, image, offset, callback) {
     const scale = button.height / button.width;
     button.width = Math.min(160, app.screen.width * 0.2)
     button.height = button.width * scale
-    button.x = Math.min(500, app.screen.width * 0.6) + sliderX + 0.7 * button.width;// app.screen.width * 0.85;
-    button.y = 80 + offset * button.height * 1.2;
+    button.x = getSliderWidth(app) + sliderX + 0.7 * button.width;// app.screen.width * 0.85;
+    button.x = button.x + offset * button.width * 1.2;
+    button.y = 80;
     button.anchor.set(0.5);
     // button.scale.set(0.08);
     const areaWidth = button.width + 10;
