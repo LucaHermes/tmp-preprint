@@ -9,7 +9,7 @@
             padding: 0px;
             background: #d9d9dd;
             font-family: Arial, sans-serif;
-            color: white;
+            /* color: white; */
         }
         #canvas-container {
             /* border: 2px solid #444; */
@@ -19,18 +19,31 @@
             margin-top: 0;
         }
         .info {
-            margin-top: 20px;
-            max-width: 800px;
+            margin-left: 60px;
+            margin-right: 60px;
+            margin-top: 60px;
+            /* max-width: 800px;
+            max-width: 800px; */
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.1.5/dist/pixi.min.js"></script>
     <script src="./shader.js"></script>
+    <!-- <script type="module" src="https://cdn.jsdelivr.net/npm/pixi-viewport@6.0.3/dist/pixi_viewport.js"></script> -->
     <script type="module" src="./metricGraph.js"></script>
     <script type="module" src="./readGraphData.js"></script>
     <script type="module" src="./inference.js"></script>
     <base href=".">
 </head>
 <body>
+    <div class="info">
+        <h1>MeGA-MP: Metric Graph Advection with Message Passing</h1>
+        <p>
+            This is a Demo of our Method MeGA-MP that has been converted to the ONNX format to run in the Browser.
+            The Demo features two water distribution systems called Hanoi and L-Town that we also use for evaluation in the paper.
+            Unlike in our test setup, for this demo the edge lengths and the time-varying flow field are fix. 
+            The boundary condition(s) can be manipulated via the slider to control the concentration at the inflow boundary node(s). 
+        </p>
+    </div>
     <div id="canvas-container"></div>
     <script type="module">
         import { createMeshStrip, drawMetricGraph, drawInjectionControl, drawWDSSelectionControl } from './metricGraph.js';
@@ -50,7 +63,8 @@
             resizeTo: window, // Make the canvas resize with the browser window
             antialias: true,
             backgroundColor: 0xd9d9dd,
-            // antialias: true
+            resolution: window.devicePixelRatio,
+            autoDensity: true
         });
 
         document.getElementById('canvas-container').appendChild(app.canvas);
@@ -153,7 +167,7 @@
         drawWDSSelectionControl(app, 'hanoi_logo.png', 0, t => {
             switchWDS('Hanoi');
         });
-        drawWDSSelectionControl(app, 'L-Town_logo.png', 140, t => {
+        drawWDSSelectionControl(app, 'L-Town_logo.png', 1, t => {
             switchWDS('l_town_no_tanks');
         });
         await switchWDS(wdsName);

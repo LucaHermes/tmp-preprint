@@ -170,15 +170,17 @@ export function drawMetricGraph(graphContainer, graph, width, height, numSegment
     return { graphContainer, edgeMeshes, nodeGraphics };
 }
 
+const sliderX = 60;
+
 export function drawInjectionControl(app, callback) {
     // Make sure stage covers the whole scene
     app.stage.hitArea = app.screen;
 
     // Make the slider
-    const sliderWidth = 320;
+    const sliderWidth = Math.min(500, app.screen.width * 0.6);
     const slider = new PIXI.Graphics().rect(0, 0, sliderWidth, 4).fill({ color: 0x272d37 });
     slider.eventMode = 'static';
-    slider.x = 100;
+    slider.x = sliderX;
     slider.y = 80;
 
     // Draw the handle
@@ -256,10 +258,13 @@ export async function drawWDSSelectionControl(app, image, offset, callback) {
     // const button = new PIXI.Graphics().rect(0, 0, buttonWidth, 4).fill({ color: 0x272d37 });
     button.eventMode = 'static';
     button.cursor = 'pointer';
-    button.x = 600 + offset;
-    button.y = 80;
+    const scale = button.height / button.width;
+    button.width = Math.min(160, app.screen.width * 0.2)
+    button.height = button.width * scale
+    button.x = Math.min(500, app.screen.width * 0.6) + sliderX + 0.7 * button.width;// app.screen.width * 0.85;
+    button.y = 80 + offset * button.height * 1.2;
     button.anchor.set(0.5);
-    button.scale.set(0.08);
+    // button.scale.set(0.08);
     const areaWidth = button.width + 10;
     const areaHeight = button.height + 10;
     const buttonArea = new PIXI.Graphics();
